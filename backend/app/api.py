@@ -42,3 +42,7 @@ async def normalize_text(request: TextRequest):
 
     normalized = analyzer.normalize_text(request.text)
     return {"result": normalized}
+
+@app.options("/api/analyze")
+async def options_handler():
+    return {"status": "ok"}
