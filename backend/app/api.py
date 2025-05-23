@@ -1,7 +1,11 @@
+import socket
+import os
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from app.morphology import MorphologyAnalyzer
+
 
 router = APIRouter()
 analyzer = MorphologyAnalyzer()
@@ -29,7 +33,12 @@ async def analyze_text(request: TextRequest):
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
     analysis = analyzer.analyze_text(request.text)
-    return {"result": analysis}
+
+    return {
+        "backend_hostname": socket.gethostname(),
+        "backend_pod_ip": os.environ.get("POD_IP"),
+        "result": analysis,
+    }
 
 
 @router.post("/normalize", response_model=Dict[str, str], tags=["Morphology"])
@@ -42,7 +51,3 @@ async def normalize_text(request: TextRequest):
 
     normalized = analyzer.normalize_text(request.text)
     return {"result": normalized}
-
-@app.options("/api/analyze")
-async def options_handler():
-    return {"status": "ok"}

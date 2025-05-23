@@ -1,6 +1,6 @@
 services:
   backend:
-    build: ./backend
+    image: pdubnyakov/morph-backend:latest
     ports:
       - "8000:8000"
     networks:
