@@ -34,11 +34,7 @@ async def analyze_text(request: TextRequest):
 
     analysis = analyzer.analyze_text(request.text)
 
-    return {
-        "backend_hostname": socket.gethostname(),
-        "backend_pod_ip": os.environ.get("POD_IP"),
-        "result": analysis,
-    }
+    return { "result": analysis }
 
 
 @router.post("/normalize", response_model=Dict[str, str], tags=["Morphology"])
@@ -50,4 +46,4 @@ async def normalize_text(request: TextRequest):
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
     normalized = analyzer.normalize_text(request.text)
-    return {"result": normalized}
+    return { "result": normalized }
