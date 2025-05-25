@@ -1,0 +1,14 @@
+[Unit]
+Description=PyMorphy2 backend (Uvicorn + FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=morph-user
+WorkingDirectory=/home/morph-user/cloud-pymorphy2/backend
+Environment="PATH=/home/morph-user/cloud-pymorphy2/backend/venv/bin"
+ExecStart=/home/morph-user/cloud-pymorphy2/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,11 +1,23 @@
-set -e -o nounset -o xtrace
+#!/bin/bash
+set -e -o pipefail
 
-cd backend
+BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 
+cd "$BACKEND_DIR"
 python3 -m venv venv
 source venv/bin/activate
-
 pip install --upgrade pip
 pip install -r requirements.txt
 
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug > server.log 2>&1 &
+SERVICE_SRC="$(cd "$(dirname "$0")/systemd" && pwd)/pymorphy2-backend.service"
+SERVICE_DST="/etc/systemd/system/pymorphy2-backend.service"
+sudo cp "$SERVICE_SRC" "$SERVICE_DST"
+sudo chown root:root "$SERVICE_DST"
+sudo chmod 644 "$SERVICE_DST"
+
+sudo systemctl daemon-reload
+sudo systemctl enable pymorphy2-backend
+sudo systemctl restart pymorphy2-backend
+
+echo "PyMorphy2 backend service started"
+echo "To see logs: sudo journalctl -u pymorphy2-backend -f"
