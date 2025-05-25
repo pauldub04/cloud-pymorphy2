@@ -12,6 +12,8 @@ spec:
       labels:
         app: frontend
     spec:
+      nodeSelector:
+        role: frontend
       containers:
       - name: nginx
         image: nginx:alpine
