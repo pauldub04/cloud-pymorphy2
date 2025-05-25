@@ -41,7 +41,6 @@ data "rustack_firewall_template" "morph_ssh" {
 resource "rustack_port" "morph_port" {
   vdc_id     = data.rustack_vdc.morph.id
   network_id = data.rustack_network.morph_network.id
-#   ip_address = "10.0.1.20"
   firewall_templates = [
     data.rustack_firewall_template.morph_allow_ingress.id,
     data.rustack_firewall_template.morph_allow_egress.id,
@@ -50,20 +49,15 @@ resource "rustack_port" "morph_port" {
   ]
 }
 
-resource "rustack_vm" "morph_vm" {
+resource "rustack_vm" "morph_backend" {
   vdc_id      = data.rustack_vdc.morph.id
-  name        = "morph_vm"
+  name        = "morph_backend"
   cpu         = var.vm_cpu
   ram         = var.vm_ram
   floating    = true
   template_id = data.rustack_template.morph_ubuntu20.id
 
-  user_data = templatefile("${path.module}/cloud-init/morph.yaml", {
-    docker_compose = filebase64("${path.module}/../docker-compose.yml")
-    nginx_conf = filebase64("${path.module}/../nginx.conf")
-    index_html = filebase64("${path.module}/../frontend/index.html")
-    script_js = filebase64("${path.module}/../frontend/script.js")
-  })
+  user_data = templatefile("${path.module}/cloud-init/morph.yaml", {})
 
   system_disk {
     size               = var.disk_size
@@ -73,9 +67,9 @@ resource "rustack_vm" "morph_vm" {
   networks {
     id = rustack_port.morph_port.id
   }
-
-  lifecycle {
-    # prevent_destroy = true
-    # ignore_changes  = [user_data]
-  }
 }
+
+curl -sfL https://get.k3s.io | K3S_URL="https://10.0.0.3:6443" \
+K3S_TOKEN="K1000e0c56c69eaebd1b12717ed3d93f1e8de5473c18172511e3d1a4eaa957576a1::server:e69016174d30a186e92d27a3db790012" \
+K3S_KUBECONFIG_MODE="644" \
+sh -

@@ -17,16 +17,11 @@ cloud_init_modules:
 users:
   - name: ubuntu
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-    groups: [sudo, docker]
+    groups: [sudo]
     shell: /bin/bash
     ssh_authorized_keys:
-      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQChs2uHa3YDyyL5WTOr6pt8+6soH0SxDlOvFPC9t/iEmsOGudt6MsTBMmJAZ2DOrTbU71Iy8FvSuilWBKD+iYIxjHGL/XaMslX1G4d3eAAqRMIo4PcBumGtv6aK1dhfXgsT2lkA8Yl+ARLkETOHE6haMckrZt8J5wkZgTC25Y9n76YpMU5b5D8z8Jze7nljbbyYLVuRSuE5NwJPUeOd8Wkmf0iubnWyJtKVevsHkF67prEh8g9LVZrd587R3Tuj33c5qPNpQ/m2KDD+AweHT1Vduc7FLUB92czEHKDKqnbd3REgsBQQzn+FiQYPy1XGOtB+uMjZ594S3xEpLPWz0qAfFb0Jt96k/kdvAI/7uzZb/4swtiR5o6gnt8FJu7V5DN872KqOmt+mo8fD0WYnmaEMH99syiYbqQmlCb83OdJzuHohVgSXKm6/OJOs9cOH1ixCjtyZCDihrr+ZmTqavh3kuV+as3TtQiha5RsaroxJ3hNhBT+GaI6VNUy4S12Kpxs= pdubnyakov@pdubnyakov-nix-2025-05-22
-chpasswd:
-  list: |
-    ubuntu:hardpass1
-  expire: false
-ssh_pwauth: true
-fqdn: "terraform-vm"
+      - ssh-rsa <my ssh key>
+
 
 package_update: true
 package_upgrade: true
@@ -34,40 +29,43 @@ packages:
   - apt-transport-https
   - ca-certificates
   - curl
-  - gnupg-agent
-  - software-properties-common
   - git
+  - python3
+  - python3-venv
 
 write_files:
-- path: /opt/app/docker-compose.yml
-  encoding: b64
-  content: ${docker_compose}
-- path: /opt/app/nginx.conf
-  encoding: b64
-  content: ${nginx_conf}
-- path: /opt/app/frontend/index.html
-  encoding: b64
-  content: ${index_html}
-- path: /opt/app/frontend/script.js
-  encoding: b64
-  content: ${script_js}
-- path: /etc/motd
-  content: |
-    ####################### Morph is installed
-    ####################### http://<IP>:8000
+  - path: /etc/systemd/system/pymorphy2-backend.service
+    content: |
+      [Unit]
+      Description=PyMorphy2 backend (Uvicorn + FastAPI)
+      After=network.target
+
+      [Service]
+      Type=simple
+      User=ubuntu
+      WorkingDirectory=/opt/app/backend
+      Environment="PATH=/opt/app/backend/venv/bin"
+      ExecStart=/opt/app/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/motd
+    content: |
+      ####################### PyMorphy2 is installed
 
 runcmd:
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  - sudo apt-get update
-  - DEBIAN_FRONTEND=noninteractive sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-  - sudo systemctl enable docker
-  - sudo systemctl start docker
+  - mkdir -p /opt/app
+  - chown ubuntu:ubuntu /opt/app
+  - su - ubuntu -c "cd /opt/app && git clone https://github.com/pauldub04/cloud-pymorphy2 ."
+  - su - ubuntu -c "cd /opt/app/backend && python3 -m venv venv"
+  - su - ubuntu -c "cd /opt/app/backend && ./venv/bin/pip install --upgrade pip"
+  - su - ubuntu -c "cd /opt/app/backend && ./venv/bin/pip install -r requirements.txt"
+  - systemctl daemon-reload
+  - systemctl enable pymorphy2-backend
+  - systemctl restart pymorphy2-backend
 
-  - curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-  - chmod +x /usr/local/bin/docker-compose
-
-  - sudo usermod -aG docker ubuntu
-
-  - cd /opt/app
-  - docker-compose up -d
+final_message: |
+  ####################### PyMorphy2 setup completed
+  ####################### Logs: sudo journalctl -u pymorphy2-backend -f

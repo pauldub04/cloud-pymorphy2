@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e -o pipefail
 
-BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
+BACKEND_DIR="./backend"
 
 cd "$BACKEND_DIR"
 python3 -m venv venv
@@ -9,7 +9,7 @@ source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-SERVICE_SRC="$(cd "$(dirname "$0")/systemd" && pwd)/pymorphy2-backend.service"
+SERVICE_SRC="../systemd/pymorphy2-backend.service"
 SERVICE_DST="/etc/systemd/system/pymorphy2-backend.service"
 sudo cp "$SERVICE_SRC" "$SERVICE_DST"
 sudo chown root:root "$SERVICE_DST"
